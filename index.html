@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <script>
-/* Dom v05 — standalone client (fixed zoom; custom shortcut icon). Data lives in the owner's Google Sheet; this page talks to it through the Apps Script API. */
+/* Dom v06 — standalone client: Wada themes, japanese patterns. Data lives in the owner's Google Sheet; this page talks to it through the Apps Script API. */
 (function () {
   try {
     var ic = JSON.parse(localStorage.getItem('dom.icon') || 'null');
@@ -57,8 +57,22 @@ h2{margin:4px 0 0;font-size:24px;font-weight:700;letter-spacing:-.02em;line-heig
 .tile.acc{background:var(--accent-s);color:var(--accent-text)}
 .tile.neg{background:var(--neg-s);color:var(--neg)}
 /* hero */
-.hero{border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);padding:20px 18px 16px;position:relative;overflow:hidden}
-.hero::before{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(closest-side,var(--accent-s),transparent);pointer-events:none}
+.hero{border-radius:var(--r-lg);background:var(--hero);border:1px solid var(--line);padding:20px 18px 16px;position:relative;overflow:hidden;isolation:isolate}
+/* japanese pattern layers: line-only tiles faded out with a mask */
+.hero::before,.login::before,.sheet::before,.empty::before{content:"";position:absolute;pointer-events:none;z-index:-1;background-image:var(--pat)}
+.hero::before{inset:0;-webkit-mask-image:linear-gradient(205deg,#000 0%,rgba(0,0,0,.6) 30%,transparent 72%);mask-image:linear-gradient(205deg,#000 0%,rgba(0,0,0,.6) 30%,transparent 72%)}
+.login{position:relative;isolation:isolate}
+.login::before{left:0;right:0;top:0;height:60vh;-webkit-mask-image:linear-gradient(#000,transparent);mask-image:linear-gradient(#000,transparent)}
+.sheet{position:relative;isolation:isolate}
+.sheet::before{left:0;right:0;top:0;height:150px;border-radius:26px 26px 0 0;-webkit-mask-image:linear-gradient(#000,transparent);mask-image:linear-gradient(#000,transparent)}
+.empty{position:relative;isolation:isolate;border-radius:var(--r-md);overflow:hidden}
+.empty::before{inset:0;-webkit-mask-image:radial-gradient(closest-side,#000,transparent);mask-image:radial-gradient(closest-side,#000,transparent)}
+.mark{width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--onaccent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brandrow{display:flex;align-items:center;gap:12px}
+.tile.deco{background:color-mix(in srgb,var(--deco) 22%,transparent);color:var(--deco-text)}
+.strip{display:flex;width:44px;height:30px;border-radius:8px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 1px rgba(128,128,128,.25)}
+.strip i{flex:1}
+.wno{font-size:11px;color:var(--muted);letter-spacing:.04em}
 .hero-n{display:flex;align-items:flex-end;gap:14px}
 .hero-n b{font-size:64px;font-weight:700;line-height:.9;letter-spacing:-.04em;color:var(--accent-text)}
 .hero-n .t{font-size:17px;font-weight:600;padding-bottom:4px}
@@ -67,7 +81,7 @@ h2{margin:4px 0 0;font-size:24px;font-weight:700;letter-spacing:-.02em;line-heig
 .day .w{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .day .n{font-size:16px;font-weight:600}
 .day .dots{display:flex;gap:3px;height:5px}
-.day .dots i{width:5px;height:5px;border-radius:3px;background:var(--accent)}
+.day .dots i{width:5px;height:5px;border-radius:3px;background:var(--deco-text)}
 .day .dots i.neg{background:var(--neg)}
 .day.now{background:var(--accent-s)}
 .day.now .n,.day.now .w{color:var(--accent-text)}
@@ -149,10 +163,8 @@ h2{margin:4px 0 0;font-size:24px;font-weight:700;letter-spacing:-.02em;line-heig
 .log .top{display:flex;justify-content:space-between;gap:12px}
 .files{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:13px}
 .themes{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.theme{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);padding:12px;text-align:left;display:flex;gap:10px;align-items:center;min-height:56px}
+.theme{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);padding:12px;text-align:left;display:flex;gap:10px;align-items:center;min-height:60px;color:var(--text)}
 .theme.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
-.sw{width:30px;height:30px;border-radius:15px;flex-shrink:0;border:1px solid rgba(128,128,128,.35);position:relative;overflow:hidden}
-.sw i{position:absolute;right:0;bottom:0;width:15px;height:15px}
 .icons{display:flex;gap:12px}
 .icopt{border:2px solid transparent;border-radius:16px;padding:2px;background:none}
 .icopt.on{border-color:var(--accent)}
@@ -174,13 +186,63 @@ h2{margin:4px 0 0;font-size:24px;font-weight:700;letter-spacing:-.02em;line-heig
 <div id="layer"></div>
 
 <script>
+/* Themes. Manual ones carry exact values; Wada themes are built from real combinations of
+   Sanzo Wada, «A Dictionary of Color Combinations» (1933), colour values from wada-sanzo-colors.com. */
 const P = {
   dusk:{label:'Сумерки',d:'Тёмная, голубой акцент',tone:'dark',bg:'#111214',surface:'#1A1B1F',surface2:'#23252A',line:'#2D3036',text:'#EDEDEA',muted:'#9AA0A8',accent:'#8DB6E8',onaccent:'#0F1724',accentS:'rgba(141,182,232,.16)'},
   paper:{label:'Бумага',d:'Светлая, синий акцент',tone:'light',bg:'#F4F3EE',surface:'#FFFFFF',surface2:'#EEEDE7',line:'#E3E1DA',text:'#111214',muted:'#5C6370',accent:'#2F5D8A',onaccent:'#FFFFFF',accentS:'#DCE6F0'},
   kami:{label:'Как в «Подходе»',d:'Тушь и салатовый',tone:'dark',bg:'#111214',surface:'#1A1B1F',surface2:'#23252A',line:'#2D3036',text:'#F4F3EE',muted:'#9A9C94',accent:'#C6F432',onaccent:'#111214',accentS:'rgba(198,244,50,.14)'},
   kamiLight:{label:'«Подход», светлая',d:'Бумага и салатовый',tone:'light',bg:'#F4F3EE',surface:'#FFFFFF',surface2:'#ECEBE4',line:'#E1DFD6',text:'#111214',muted:'#5C5E57',accent:'#C6F432',accentText:'#4E6B00',onaccent:'#111214',accentS:'#ECF8C4'},
-  system:{label:'Как в системе',d:'Сумерки или Бумага'}
+  system:{label:'Как в системе',d:'Сумерки или Бумага'},
+  w2:{wada:2,label:'Тирийская ночь',d:'Dark Tyrian Blue · Yellow Orange',tone:'dark',base:'#12354e',accent:'#f99d1b',sw:['#12354e','#f99d1b']},
+  w236:{wada:236,label:'Лионская синь',d:'Deep Lyons Blue · Khaki · Purple Drab',tone:'dark',base:'#1c4286',accent:'#bc892b',deco:'#84565b',sw:['#bc892b','#1c4286','#84565b']},
+  w66:{wada:66,label:'Олива',d:'Olive Green · Olive Ocher',tone:'dark',base:'#6b7140',accent:'#d6b43e',sw:['#d6b43e','#6b7140']},
+  w58:{wada:58,label:'Медь и море',d:"Hay's Russet · Sea Green",tone:'dark',base:'#793327',accent:'#00b49b',sw:['#793327','#00b49b']},
+  w9:{wada:9,label:'Слива',d:'Violet Red · Dull Blue Violet',tone:'dark',base:'#642d5e',accent:'#80719e',sw:['#642d5e','#80719e']},
+  w214:{wada:214,label:'Слоновая кость',d:'Ivory Buff · Sudan Brown · Violet',tone:'light',base:'#ebd3a2',accent:'#4f4086',deco:'#a36752',sw:['#ebd3a2','#a36752','#4f4086']},
+  w176:{wada:176,label:'Сакура',d:'Hermosa Pink · Seashell Pink · Calamine Blue',tone:'light',base:'#fdd4bd',accent:'#78cdd0',deco:'#f9c1ce',sw:['#f9c1ce','#fdd4bd','#78cdd0']},
+  w93:{wada:93,label:'Цитрин',d:'Citrine · Light Glaucous Blue',tone:'light',base:'#a5c8d1',accent:'#a49531',sw:['#a49531','#a5c8d1']}
 };
+/* colour math for derived shades */
+const hx = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); };
+const toHex = a => '#' + a.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const mix = (a, b, t) => { const x = hx(a), y = hx(b); return toHex(x.map((v, i) => v + (y[i] - v) * t)); };
+const lum = h => { const c = hx(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+function fit(fg, bg, min) { const to = lum(bg) < .3 ? '#ffffff' : '#000000'; let c = fg; for (let i = 1; i <= 20 && contrast(c, bg) < min; i++) c = mix(fg, to, i * .05); return c; }
+const rgba = (h, a) => { const c = hx(h); return 'rgba(' + c.join(',') + ',' + a + ')'; };
+function build(p) {
+  if (p.bg) return p;
+  const dark = p.tone === 'dark', ink = '#111314', paper = '#F3EFE6';
+  let bg = p.base;
+  if (dark) { for (let t = .05; lum(bg) > .011 && t < .95; t += .05) bg = mix(p.base, '#000000', t); }
+  else { for (let t = .05; lum(bg) < .80 && t < .95; t += .05) bg = mix(p.base, '#ffffff', t); }
+  const surface = dark ? mix(bg, p.base, .32) : mix(bg, '#ffffff', .62);
+  const surface2 = dark ? mix(surface, p.base, .38) : mix(bg, p.base, .14);
+  const text = dark ? paper : ink;
+  const line = mix(surface, text, dark ? .13 : .11);
+  const muted = fit(mix(text, bg, .42), surface, 4.6);
+  const accentText = fit(p.accent, surface, 4.6);
+  const onaccent = contrast(p.accent, ink) >= contrast(p.accent, '#ffffff') ? ink : '#ffffff';
+  return Object.assign({}, p, { bg: bg, surface: surface, surface2: surface2, line: line, text: text, muted: muted, accentText: accentText, onaccent: onaccent,
+    accentS: dark ? rgba(p.accent, .18) : mix(p.accent, surface, .8), deco: p.deco || p.accent });
+}
+/* patterns: line-only SVG tiles, tinted with the theme text colour */
+function patternURL(kind, color, alpha) {
+  let w, h, d = '';
+  if (kind === 'asanoha') {
+    const a = 40, H = a * Math.sqrt(3);
+    w = a; h = H;
+    const T = [[[0,0],[a,0],[a/2,H/2]],[[-a/2,H/2],[a/2,H/2],[0,0]],[[a/2,H/2],[a*1.5,H/2],[a,0]],[[0,H],[a,H],[a/2,H/2]],[[-a/2,H/2],[a/2,H/2],[0,H]],[[a/2,H/2],[a*1.5,H/2],[a,H]]];
+    T.forEach(t => { const cx = (t[0][0] + t[1][0] + t[2][0]) / 3, cy = (t[0][1] + t[1][1] + t[2][1]) / 3;
+      d += 'M' + t[0] + 'L' + t[1] + 'L' + t[2] + 'Z'; t.forEach(v => { d += 'M' + cx.toFixed(2) + ',' + cy.toFixed(2) + 'L' + v[0].toFixed(2) + ',' + v[1].toFixed(2); }); });
+  } else if (kind === 'shippo') {
+    const r = 20; w = h = 2 * r;
+    [[0,0],[2*r,0],[0,2*r],[2*r,2*r],[r,r]].forEach(c => { d += 'M' + (c[0] - r) + ',' + c[1] + 'a' + r + ',' + r + ' 0 1,0 ' + 2 * r + ',0a' + r + ',' + r + ' 0 1,0 -' + 2 * r + ',0'; });
+  } else return 'none';
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w.toFixed(2) + '" height="' + h.toFixed(2) + '" viewBox="0 0 ' + w.toFixed(2) + ' ' + h.toFixed(2) + '"><path d="' + d + '" fill="none" stroke="' + color + '" stroke-opacity="' + alpha + '" stroke-width="1"/></svg>';
+  return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+}
 const TONE = {
   dark:{neg:'#F28B82',negS:'rgba(242,139,130,.14)',warn:'#E6B866',warnS:'rgba(230,184,102,.14)',ok:'#7DCFA6',okS:'rgba(125,207,166,.14)',shade:'rgba(0,0,0,.55)'},
   light:{neg:'#B23B3B',negS:'#F3DCDC',warn:'#8A5A12',warnS:'#F5EAD6',ok:'#24654A',okS:'#DDEEE6',shade:'rgba(17,18,20,.32)'}
@@ -269,13 +331,17 @@ const groups = () => { const s = []; D.items.forEach(v => { if (v.group && s.ind
 function applyTheme() {
   let id = LS.get('dom.theme', 'dusk');
   if (!P[id]) id = 'dusk';
-  const p = id === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? P.paper : P.dusk) : P[id];
+  const p = build(id === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? P.paper : P.dusk) : P[id]);
   const t = TONE[p.tone], r = document.documentElement.style;
   const vars = {bg:p.bg,surface:p.surface,surface2:p.surface2,line:p.line,text:p.text,muted:p.muted,accent:p.accent,'accent-text':p.accentText || p.accent,onaccent:p.onaccent,'accent-s':p.accentS,
-    neg:t.neg,'neg-s':t.negS,warn:t.warn,'warn-s':t.warnS,ok:t.ok,'ok-s':t.okS,shade:t.shade};
+    deco:p.deco || p.accent,'deco-text':fit(p.deco || p.accent, p.surface, 3),neg:t.neg,'neg-s':t.negS,warn:t.warn,'warn-s':t.warnS,ok:t.ok,'ok-s':t.okS,shade:t.shade,
+    hero:'linear-gradient(140deg,' + (p.tone === 'dark' ? mix(p.surface, p.accent, .14) : mix(p.surface, p.accent, .12)) + ' 0%,' + p.surface + ' 62%)'};
   Object.keys(vars).forEach(k => r.setProperty('--' + k, vars[k]));
+  const pat = LS.get('dom.pattern', 'asanoha'), soft = LS.get('dom.patternSoft', false);
+  r.setProperty('--pat', patternURL(pat, p.text, p.tone === 'dark' ? (soft ? .07 : .12) : (soft ? .08 : .14)));
   r.setProperty('color-scheme', p.tone);
   document.documentElement.dataset.tone = p.tone;
+  document.documentElement.dataset.pattern = pat;
   document.querySelector('meta[name=theme-color]').setAttribute('content', p.bg);
 }
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (LS.get('dom.theme', 'dusk') === 'system') applyTheme(); });
@@ -411,7 +477,7 @@ function vToday() {
     week += '<div class="day' + (i === 0 ? ' now' : '') + '"><span class="w">' + WS[d.getUTCDay()] + '</span><span class="n">' + d.getUTCDate() + '</span><span class="dots">' +
       Array.from({ length: dots }, () => '<i' + (i === 0 && over ? ' class="neg"' : '') + '></i>').join('') + '</span></div>';
   }
-  let h = '<div class="head"><div><div class="cap">' + esc(WD[t.getUTCDay()] + ', ' + t.getUTCDate() + ' ' + MG[t.getUTCMonth()]) + '<span class="sync' + (syncing ? ' on' : '') + '" id="sync"></span></div><h1>Дом</h1></div>' +
+  let h = '<div class="head"><div class="brandrow"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5V20H4z"/><path d="M9.5 14.5l2 2 3.5-4"/></svg></span><div><div class="cap">' + esc(WD[t.getUTCDay()] + ', ' + t.getUTCDate() + ' ' + MG[t.getUTCMonth()]) + '<span class="sync' + (syncing ? ' on' : '') + '" id="sync"></span></div><h1 style="margin-top:2px">Дом</h1></div></div>' +
     '<button class="iconbtn" data-act="form" aria-label="Новая позиция">' + ic('plus', 20) + '</button></div>';
   h += '<div class="hero"><div class="hero-n"><b>' + att.length + '</b><div><div class="t">' + plural(att.length, ['срочное дело','срочных дела','срочных дел']) + '</div><div class="sub">' + esc(subTxt) + '</div></div></div><div class="week" aria-label="Ближайшие 7 дней">' + week + '</div></div>';
   if (att.length) h += '<div class="label"><span class="cap">Требует внимания</span></div>' + att.map(itemCard).join('');
@@ -454,7 +520,7 @@ function vSections() {
     if (openSec[s] === undefined) openSec[s] = i === 0;
     const its = D.items.filter(v => v.section === s), so = !!openSec[s];
     const over = its.filter(v => v.days !== null && v.days < 0).length;
-    h += '<div class="card sec"><button class="sec-h" data-act="sec" data-id="' + esc(s) + '" aria-expanded="' + so + '"><span class="tile' + (so ? ' acc' : '') + '">' + ic(glyph(s), 20) + '</span>' +
+    h += '<div class="card sec"><button class="sec-h" data-act="sec" data-id="' + esc(s) + '" aria-expanded="' + so + '"><span class="tile' + (so ? ' deco' : '') + '">' + ic(glyph(s), 20) + '</span>' +
       '<span style="flex:1;min-width:0"><span class="ttl" style="display:block">' + esc(s) + '</span><span class="sub" style="display:block">' + its.length + ' ' + plural(its.length, ['позиция','позиции','позиций']) +
       (over ? ' · <span style="color:var(--neg);font-weight:600">' + over + ' просрочено</span>' : '') + '</span></span><span class="chev">' + ic('down', 18, 2) + '</span></button>';
     if (so) {
@@ -497,13 +563,23 @@ function vHistory() {
   return h + '<div class="card list">' + D.log.slice(0, 150).map(l => logRow(l, true)).join('') + '</div>';
 }
 function vSettings() {
-  const th = LS.get('dom.theme', 'dusk'), icn = LS.get('dom.icon', 'dusk');
-  const swatch = p => p.bg ? '<span class="sw" style="background:' + p.bg + '"><i style="background:' + p.accent + '"></i></span>' : '<span class="sw" style="background:linear-gradient(135deg,#111214 50%,#F4F3EE 50%)"></span>';
+  const th = LS.get('dom.theme', 'dusk'), icn = LS.get('dom.icon', 'dusk'), pat = LS.get('dom.pattern', 'asanoha'), soft = LS.get('dom.patternSoft', false);
+  const tile = k => { const p = P[k], b = p.base ? build(p) : p;
+    const sw = p.sw ? '<span class="strip">' + p.sw.map(c => '<i style="background:' + c + '"></i>').join('') + '</span>'
+      : p.bg ? '<span class="strip"><i style="background:' + p.bg + '"></i><i style="background:' + p.accent + '"></i></span>' : '<span class="strip"><i style="background:#111214"></i><i style="background:#F4F3EE"></i></span>';
+    return '<button class="theme' + (k === th ? ' on' : '') + '" data-act="theme" data-id="' + k + '" aria-pressed="' + (k === th) + '">' + sw +
+      '<span style="min-width:0"><span class="ttl" style="display:block;font-size:14px">' + esc(p.label) + '</span><span class="sub" style="display:block;font-size:12px">' +
+      (p.wada ? '№ ' + p.wada + ' · ' + (b.tone === 'dark' ? 'тёмная' : 'светлая') : esc(p.d)) + '</span></span></button>'; };
+  const keys = Object.keys(P);
   return '<div class="head"><div><div class="cap">Настройки</div><h1>Ещё</h1></div></div>' +
     '<div class="card list"><div class="kv"><span>Вы</span><span>' + esc(D.me.name) + '</span></div><div class="kv"><span>Позиций</span><span>' + D.items.length + '</span></div>' +
     '<div class="kv"><span>Обновлено</span><span>' + esc(fmt(D.today, true)) + '</span></div></div>' +
-    '<div class="label"><span class="cap">Тема</span></div><div class="themes">' + Object.keys(P).map(k => '<button class="theme' + (k === th ? ' on' : '') + '" data-act="theme" data-id="' + k + '" aria-pressed="' + (k === th) + '">' + swatch(P[k]) +
-      '<span><span class="ttl" style="display:block;font-size:14px">' + esc(P[k].label) + '</span><span class="sub" style="display:block;font-size:12px">' + esc(P[k].d) + '</span></span></button>').join('') + '</div>' +
+    '<div class="label"><span class="cap">Тема</span></div><div class="themes">' + keys.filter(k => !P[k].wada).map(tile).join('') + '</div>' +
+    '<div class="label"><span class="cap">Санзо Вада · Словарь цветовых сочетаний</span></div><div class="themes">' + keys.filter(k => P[k].wada).map(tile).join('') + '</div>' +
+    '<div class="sub" style="margin:10px 2px 0">Сочетания из книги 1933 года, номер — по каталогу. Оттенки фона и карточек выведены из цветов сочетания.</div>' +
+    '<div class="label"><span class="cap">Узор</span></div><div class="types">' +
+      [['asanoha','Асаноха'],['shippo','Сиппо'],['none','Без узора']].map(o => '<button class="chip' + (pat === o[0] ? ' on' : '') + '" data-act="pattern" data-id="' + o[0] + '" aria-pressed="' + (pat === o[0]) + '">' + o[1] + '</button>').join('') +
+      (pat !== 'none' ? '<button class="chip' + (soft ? ' on' : '') + '" data-act="patsoft" aria-pressed="' + soft + '">Мягче</button>' : '') + '</div>' +
     '<div class="label"><span class="cap">Иконка ярлыка</span></div><div class="card" style="padding:14px"><div class="icons" style="flex-wrap:wrap">' + ICONS.map(i => '<button class="icopt' + (i[0] === icn ? ' on' : '') + '" data-act="icon" data-id="' + i[0] + '" aria-label="Иконка ' + i[1] + '"><img src="icons/icon-180' + (i[0] === 'dusk' ? '' : '-' + i[0]) + '.png" alt=""></button>').join('') +
       (LS.get('dom.iconData', null) ? '<button class="icopt' + (icn === 'custom' ? ' on' : '') + '" data-act="icon" data-id="custom" aria-label="Своя иконка"><img src="' + esc(LS.get('dom.iconData', '')) + '" alt=""></button>' : '') +
       '<button class="icopt add" data-act="iconpick" aria-label="Загрузить свою картинку">' + ic('plus', 22) + '</button></div><input type="file" id="iconFile" accept="image/*" hidden>' +
@@ -644,6 +720,8 @@ document.addEventListener('click', e => {
     case 'sec': openSec[id] = !openSec[id]; render(); break;
     case 'grp': openGrp[id] = !openGrp[id]; render(); break;
     case 'theme': LS.set('dom.theme', id); applyTheme(); render(); break;
+    case 'pattern': LS.set('dom.pattern', id); applyTheme(); render(); break;
+    case 'patsoft': LS.set('dom.patternSoft', !LS.get('dom.patternSoft', false)); applyTheme(); render(); break;
     case 'icon': setIcon(id); break;
     case 'iconpick': $('#iconFile').click(); break;
     case 'cropsave': saveCrop(); break;

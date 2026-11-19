@@ -1,5 +1,5 @@
-// Dom v05 service worker: network-first for the app shell, never touches API calls.
-const CACHE = 'dom-v05';
+// Dom v06 service worker: network-first for the app shell, never touches API calls.
+const CACHE = 'dom-v06';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-180.png', 'icons/icon-192.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
