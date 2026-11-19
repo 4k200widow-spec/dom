@@ -13,11 +13,12 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <script>
-/* Dom v03 — standalone client. Data lives in the owner's Google Sheet; this page talks to it through the Apps Script API. */
+/* Dom v04 — standalone client (custom shortcut icon). Data lives in the owner's Google Sheet; this page talks to it through the Apps Script API. */
 (function () {
   try {
-    var ic = localStorage.getItem('dom.icon');
-    if (ic) document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(function (l) { l.href = 'icons/icon-180' + (ic === 'dusk' ? '' : '-' + ic) + '.png'; });
+    var ic = JSON.parse(localStorage.getItem('dom.icon') || 'null');
+    var href = ic === 'custom' ? JSON.parse(localStorage.getItem('dom.iconData') || 'null') : ic ? 'icons/icon-180' + (ic === 'dusk' ? '' : '-' + ic) + '.png' : null;
+    if (href) document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(function (l) { l.href = href; });
   } catch (e) {}
 })();
 </script>
@@ -134,6 +135,7 @@ h2{margin:4px 0 0;font-size:24px;font-weight:700;letter-spacing:-.02em;line-heig
 .f>span{display:block;margin-bottom:7px}
 .f input,.f select,.f textarea{width:100%;height:48px;border:1px solid var(--line);border-radius:12px;padding:0 13px;background:var(--surface2);font-size:16px;color:var(--text)}
 .f textarea{height:90px;padding:12px 13px;resize:vertical}
+.f input[type=range]{height:30px;border:0;background:none;padding:0;accent-color:var(--accent)}
 .f input::placeholder,.f textarea::placeholder{color:var(--muted);opacity:.8}
 .f input:focus,.f select:focus,.f textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .pair{display:grid;grid-template-columns:1fr 112px;gap:8px}
@@ -151,6 +153,8 @@ h2{margin:4px 0 0;font-size:24px;font-weight:700;letter-spacing:-.02em;line-heig
 .icons{display:flex;gap:12px}
 .icopt{border:2px solid transparent;border-radius:16px;padding:2px;background:none}
 .icopt.on{border-color:var(--accent)}
+.crop{width:240px;height:240px;border-radius:52px;display:block;margin:4px auto 0;touch-action:none;box-shadow:0 0 0 1px var(--line);background:var(--surface2)}
+.icopt.add{width:60px;height:60px;border:1px dashed var(--line);border-radius:15px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 .icopt img{width:56px;height:56px;border-radius:13px;display:block;box-shadow:0 0 0 1px var(--line)}
 .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);border-radius:14px;padding:12px 16px;font-size:14px;font-weight:500;z-index:20;max-width:90vw;transition:opacity .2s}
 .login{max-width:420px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:calc(24px + env(safe-area-inset-top)) 22px 40px}
@@ -497,7 +501,9 @@ function vSettings() {
     '<div class="kv"><span>Обновлено</span><span>' + esc(fmt(D.today, true)) + '</span></div></div>' +
     '<div class="label"><span class="cap">Тема</span></div><div class="themes">' + Object.keys(P).map(k => '<button class="theme' + (k === th ? ' on' : '') + '" data-act="theme" data-id="' + k + '" aria-pressed="' + (k === th) + '">' + swatch(P[k]) +
       '<span><span class="ttl" style="display:block;font-size:14px">' + esc(P[k].label) + '</span><span class="sub" style="display:block;font-size:12px">' + esc(P[k].d) + '</span></span></button>').join('') + '</div>' +
-    '<div class="label"><span class="cap">Иконка ярлыка</span></div><div class="card" style="padding:14px"><div class="icons">' + ICONS.map(i => '<button class="icopt' + (i[0] === icn ? ' on' : '') + '" data-act="icon" data-id="' + i[0] + '" aria-label="Иконка ' + i[1] + '"><img src="icons/icon-180' + (i[0] === 'dusk' ? '' : '-' + i[0]) + '.png" alt=""></button>').join('') + '</div>' +
+    '<div class="label"><span class="cap">Иконка ярлыка</span></div><div class="card" style="padding:14px"><div class="icons" style="flex-wrap:wrap">' + ICONS.map(i => '<button class="icopt' + (i[0] === icn ? ' on' : '') + '" data-act="icon" data-id="' + i[0] + '" aria-label="Иконка ' + i[1] + '"><img src="icons/icon-180' + (i[0] === 'dusk' ? '' : '-' + i[0]) + '.png" alt=""></button>').join('') +
+      (LS.get('dom.iconData', null) ? '<button class="icopt' + (icn === 'custom' ? ' on' : '') + '" data-act="icon" data-id="custom" aria-label="Своя иконка"><img src="' + esc(LS.get('dom.iconData', '')) + '" alt=""></button>' : '') +
+      '<button class="icopt add" data-act="iconpick" aria-label="Загрузить свою картинку">' + ic('plus', 22) + '</button></div><input type="file" id="iconFile" accept="image/*" hidden>' +
     '<div class="sub" style="margin-top:12px">iPhone берёт иконку в момент добавления на экран. Чтобы сменить: выберите иконку здесь, откройте этот же адрес в Safari, удалите старый ярлык и добавьте заново через «Поделиться → На экран "Домой"».</div></div>' +
     '<div class="label"><span class="cap">Telegram-бот</span></div><div class="card" style="padding:14px 16px;font-size:15px;line-height:1.5">Одной строкой через запятые: что сделали, где, дата, подробности, сумма. Можно приложить фото или PDF чека.<div class="sub" style="margin-top:8px">Пример: замена масла, Масломарт, 05.06.2027, масло 5W-30 4 л, 4500 ₽</div></div>' +
     '<div class="btns"><button class="btn sec" data-act="reload">Обновить данные</button><button class="btn ghost" data-act="logout">Выйти</button></div>';
@@ -635,7 +641,9 @@ document.addEventListener('click', e => {
     case 'sec': openSec[id] = !openSec[id]; render(); break;
     case 'grp': openGrp[id] = !openGrp[id]; render(); break;
     case 'theme': LS.set('dom.theme', id); applyTheme(); render(); break;
-    case 'icon': LS.set('dom.icon', id); document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(l => { l.href = 'icons/icon-180' + (id === 'dusk' ? '' : '-' + id) + '.png'; }); render(); toast('Иконка выбрана. Добавьте ярлык заново из Safari.'); break;
+    case 'icon': setIcon(id); break;
+    case 'iconpick': $('#iconFile').click(); break;
+    case 'cropsave': saveCrop(); break;
     case 'form': if (id) openForm(id); else if (b.dataset.newsec) openForm(null, { section: '', group: '' }); else openForm(null, b.dataset.sec ? { section: b.dataset.sec } : null); break;
     case 'ftype': { const cur = readForm(b.closest('form')); cur.type = id; if (id === 'Срок' && !cur.every) cur.unit = 'год'; renderForm(cur, !!cur.id); break; }
     case 'plan': openPlan(id); break;
@@ -647,7 +655,52 @@ document.addEventListener('click', e => {
       setBusy(); api('saveItem', { id: id, type: item(id).type, name: item(id).name, active: 'нет' }).then(d => apply(d, 'Убрано в архив')).catch(fail); break;
   }
 });
-document.addEventListener('change', e => { if (e.target.id === 'evSec') { evSec = e.target.value; render(); } });
+document.addEventListener('change', e => {
+  if (e.target.id === 'evSec') { evSec = e.target.value; render(); }
+  if (e.target.id === 'iconFile' && e.target.files[0]) openCrop(e.target.files[0]);
+});
+document.addEventListener('input', e => { if (e.target.id === 'cropZoom' && CROP) { CROP.zoom = Number(e.target.value); drawCrop(); } });
+
+/* ---------- custom shortcut icon ---------- */
+function setIcon(id) {
+  LS.set('dom.icon', id);
+  const href = id === 'custom' ? LS.get('dom.iconData', '') : 'icons/icon-180' + (id === 'dusk' ? '' : '-' + id) + '.png';
+  document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(l => { l.href = href; });
+  render(); toast('Иконка выбрана. Теперь добавьте ярлык заново из Safari.');
+}
+let CROP = null;
+function drawIcon(ctx, size) {
+  const c = CROP, sc = Math.max(size / c.img.width, size / c.img.height) * c.zoom;
+  const w = c.img.width * sc, h = c.img.height * sc, mx = (w - size) / 2, my = (h - size) / 2;
+  ctx.fillStyle = '#111214'; ctx.fillRect(0, 0, size, size);
+  ctx.drawImage(c.img, (size - w) / 2 + c.ox * mx, (size - h) / 2 + c.oy * my, w, h);
+}
+function drawCrop() { const cv = $('#cropCv'); if (cv && CROP) drawIcon(cv.getContext('2d'), cv.width); }
+function openCrop(file) {
+  const r = new FileReader();
+  r.onload = () => { const img = new Image(); img.onload = () => {
+    CROP = { img: img, zoom: 1, ox: 0, oy: 0 };
+    sheet(sheetTop('Своя иконка', 'Подвиньте и приблизьте') + '<canvas id="cropCv" class="crop" width="480" height="480" aria-label="Предпросмотр иконки"></canvas>' +
+      '<label class="f"><span class="cap">Масштаб</span><input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1"></label>' +
+      '<div class="sub" style="margin-top:8px">Двигайте картинку пальцем. iPhone сам скруглит углы.</div>' +
+      '<div class="btns"><button class="btn" data-act="cropsave">Сохранить иконку</button></div>');
+    drawCrop();
+    const cv = $('#cropCv'); let st = null;
+    cv.addEventListener('pointerdown', e => { st = { x: e.clientX, y: e.clientY, ox: CROP.ox, oy: CROP.oy }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => { if (!st) return;
+      const sc = Math.max(240 / CROP.img.width, 240 / CROP.img.height) * CROP.zoom, mx = (CROP.img.width * sc - 240) / 2, my = (CROP.img.height * sc - 240) / 2;
+      CROP.ox = mx ? Math.max(-1, Math.min(1, st.ox + (e.clientX - st.x) / mx)) : 0; CROP.oy = my ? Math.max(-1, Math.min(1, st.oy + (e.clientY - st.y) / my)) : 0; drawCrop(); });
+    cv.addEventListener('pointerup', () => { st = null; });
+  }; img.onerror = () => toast('Не удалось открыть картинку'); img.src = r.result; };
+  r.readAsDataURL(file);
+  $('#iconFile').value = '';
+}
+function saveCrop() {
+  const c = document.createElement('canvas'); c.width = c.height = 180;
+  drawIcon(c.getContext('2d'), 180);
+  LS.set('dom.iconData', c.toDataURL('image/png'));
+  CROP = null; closeSheet(); setIcon('custom');
+}
 document.addEventListener('submit', e => {
   const form = e.target.closest('form[data-form]'); if (!form) return;
   e.preventDefault(); if (busy) return;
