@@ -2,7 +2,7 @@
 <html lang="ru" data-tone="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <script>
-/* Dom v04 — standalone client (custom shortcut icon). Data lives in the owner's Google Sheet; this page talks to it through the Apps Script API. */
+/* Dom v05 — standalone client (fixed zoom; custom shortcut icon). Data lives in the owner's Google Sheet; this page talks to it through the Apps Script API. */
 (function () {
   try {
     var ic = JSON.parse(localStorage.getItem('dom.icon') || 'null');
@@ -32,8 +32,11 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-text-size-adjust:100%;font-feature-settings:"tnum" 1}
-body{min-height:100vh}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-text-size-adjust:100%;text-size-adjust:100%;font-feature-settings:"tnum" 1;overflow-x:hidden;max-width:100%}
+html{touch-action:manipulation}
+body{min-height:100vh;overscroll-behavior:none}
+/* iOS zooms into any field with text under 16px: keep every control at 16px+ */
+input,select,textarea{font-size:16px!important}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 a{color:var(--accent-text)}
